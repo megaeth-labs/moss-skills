@@ -1,0 +1,12 @@
+{
+  "name": "moss-wallet",
+  "version": "1.0.0",
+  "description": "MOSS Wallet SDK skills for AI coding agents (Claude Code, Codex, Cursor, Gemini). Eight on-demand skills covering core SDK, permissions, React, server verify, paymaster, CLI, Privy migration, and security review.",
+  "author": {
+    "name": "MegaETH Labs",
+    "url": "https://github.com/megaeth-labs"
+  },
+  "homepage": "https://docs.megaeth.com/wallet/agent-skills",
+  "license": "MIT",
+  "keywords": ["megaeth", "moss", "wallet", "web3", "embedded-wallet", "sdk"]
+}

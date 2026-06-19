@@ -1,0 +1,18 @@
+{
+  "name": "moss-skills",
+  "owner": {
+    "name": "MegaETH Labs",
+    "url": "https://github.com/megaeth-labs"
+  },
+  "metadata": {
+    "description": "Agent Skills for building on the MOSS Wallet SDK (MegaETH embedded wallet).",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "moss-wallet",
+      "source": "./moss-wallet",
+      "description": "Teaches coding agents to build MOSS Wallet integrations correctly: core SDK, Smart Approvals/permissions, React, server-side verification, paymaster sponsorship, CLI automation, Privy migration, and pre-launch security review."
+    }
+  ]
+}
