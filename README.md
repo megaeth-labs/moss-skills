@@ -13,7 +13,7 @@ here. It doubles as a Claude Code plugin marketplace.
 ### Claude Code
 
 ```bash
-/plugin marketplace add megaeth-labs/moss-skills
+/plugin marketplace add https://github.com/megaeth-labs/moss-skills.git
 /plugin install moss-wallet@moss-skills
 /reload-plugins
 ```
