@@ -1,12 +1,6 @@
 ---
 name: moss-wallet-permissions
-description: Designs and implements MOSS Smart Approvals — session-key permission grants for delegated and silent execution on MegaETH. Use when an integration needs mega.grantPermissions(), mega.getPermissions(), mega.revokePermissions(), or callContract({ silent: true }), or when building AI-agent loops, game automation, recurring spends, or checkout flows that run without per-action prompts. Encodes the canonical { to, signature } call matcher plus scoped spend limits with a period, short expiry windows, least-privilege defaults, and a revocation plan. Explains that silent: true only works against a matching grant and otherwise falls back to wallet UI.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets @megaeth-labs/wallet-sdk v0.1.x.
-metadata:
-  package: "@megaeth-labs/wallet-sdk"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Designs and implements MOSS Smart Approvals — session-key permission grants for delegated and silent execution on MegaETH. Use when an integration needs mega.grantPermissions(), mega.getPermissions(), mega.revokePermissions(), or callContract({ silent: true }), or when building AI-agent loops, game automation, recurring spends, or checkout flows that run without per-action prompts. Encodes the canonical { to, signature } call matcher plus scoped spend limits with a period, short expiry windows, least-privilege defaults, and a revocation plan. Explains that silent: true only works against a matching grant and otherwise falls back to wallet UI."
 ---
 
 # MOSS Smart Approvals (Permissions)

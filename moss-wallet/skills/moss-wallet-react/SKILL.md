@@ -1,12 +1,6 @@
 ---
 name: moss-wallet-react
-description: Integrates MOSS into React 19 apps with @megaeth-labs/wallet-sdk-react (TanStack Query 5). Use when wiring MegaProvider and hooks — useStatus, useConnect, useTransfer, useSend, useSwap, useCallContract, useGetFromContract, useSignMessage, useAuthenticate, useGrantPermissions, useRevokePermissions, useDeposit, useBalances, usePermissions — or when an app already uses wagmi/viem and wants the @megaeth-labs/wallet-wagmi-connector instead. Covers mutation vs query hook semantics (mutateAsync, isPending), the shared balances query key, SSR/Next.js client-only initialisation, and gating UI on the initialised flag.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets @megaeth-labs/wallet-sdk-react v0.1.x (React 19, TanStack Query 5).
-metadata:
-  package: "@megaeth-labs/wallet-sdk-react"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Integrates MOSS into React 19 apps with @megaeth-labs/wallet-sdk-react (TanStack Query 5). Use when wiring MegaProvider and hooks — useStatus, useConnect, useTransfer, useSend, useSwap, useCallContract, useGetFromContract, useSignMessage, useAuthenticate, useGrantPermissions, useRevokePermissions, useDeposit, useBalances, usePermissions — or when an app already uses wagmi/viem and wants the @megaeth-labs/wallet-wagmi-connector instead. Covers mutation vs query hook semantics (mutateAsync, isPending), the shared balances query key, SSR/Next.js client-only initialisation, and gating UI on the initialised flag."
 ---
 
 # MOSS Wallet — React SDK

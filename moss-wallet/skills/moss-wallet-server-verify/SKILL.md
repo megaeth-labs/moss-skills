@@ -1,12 +1,6 @@
 ---
 name: moss-wallet-server-verify
-description: Verifies MOSS wallet ownership on the backend with @megaeth-labs/wallet-server-verify (SIWE, viem + porto). Use when implementing wallet-backed login or session issuance: generate a challenge with getMessageToSign(config, address), have the client sign it via mega.signMessage(), and confirm with verifySignature(config, messageToConfirm), which throws DIFFERENT_MESSAGE or INVALID_SIGNATURE on mismatch. Also covers the JWT path — mega.authenticate() returns a JWT verified at the partner-auth endpoint. Encodes nonce/challenge storage, single-use challenges, correct chainId (mainnet 4326, testnet 6343), and the rule to never trust client-only signature checks.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Backend (Node). Targets @megaeth-labs/wallet-server-verify v0.1.x.
-metadata:
-  package: "@megaeth-labs/wallet-server-verify"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Verifies MOSS wallet ownership on the backend with @megaeth-labs/wallet-server-verify (SIWE, viem + porto). Use when implementing wallet-backed login or session issuance: generate a challenge with getMessageToSign(config, address), have the client sign it via mega.signMessage(), and confirm with verifySignature(config, messageToConfirm), which throws DIFFERENT_MESSAGE or INVALID_SIGNATURE on mismatch. Also covers the JWT path — mega.authenticate() returns a JWT verified at the partner-auth endpoint. Encodes nonce/challenge storage, single-use challenges, correct chainId (mainnet 4326, testnet 6343), and the rule to never trust client-only signature checks."
 ---
 
 # MOSS Wallet Server Verify

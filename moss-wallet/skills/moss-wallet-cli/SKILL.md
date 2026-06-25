@@ -1,180 +1,371 @@
 ---
 name: moss-wallet-cli
-description: Automates MOSS accounts from the terminal or CI with the mega CLI (mega moss ...). Use when scripting wallet operations outside a browser: login, whoami, list, permissions, create-key (with --spend-limit <token>:<amount>:<period> and --allow-call <contract>:<signature>), revoke, call, execute (single or batched), transfer, and fund. Covers the delegated session-key model (the CLI never holds the passkey), machine output via --json/--terse for agents, native-transfer call scoping, and that mega moss update refreshes the CLI plus its bundled agent skill. Install via the account.megaeth.com script.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets the mega CLI (moss subcommands).
-metadata:
-  binary: "mega"
-  command-prefix: "mega moss"
-  native-token-sentinel: "0x0000000000000000000000000000000000000000"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Use the MegaETH Wallet CLI to connect a MegaETH passkey wallet, create/manage scoped delegated session keys, inspect permissions, and use those keys for read-only calls, transfers, and relay-backed execution on MegaETH."
 ---
 
-# MOSS Wallet CLI (`mega moss`)
+# MegaETH Wallet CLI
 
-Drive a MOSS account from a shell or CI: connect a passkey account, mint scoped
-delegated session keys, inspect live permissions, and submit reads, writes, and
-transfers — all without a browser at run time. Every write goes through a
-delegated key bounded by spend limits, allowed calls, and expiry (the same Smart
-Approvals model the SDK uses).
+Use this skill when an agent needs to operate a local MegaETH wallet through
+`mega moss` commands.
 
-## Golden rules
+## Mental Model
 
-1. **The CLI only holds delegated session-key material — never the passkey.** The
-   passkey stays in the browser wallet. So `create-key` and `revoke` require a
-   confirmation in the browser; the CLI can use a key but cannot mint or destroy
-   account authority on its own.
-2. **A write key needs BOTH spend permission AND an explicit call scope.** Spend
-   permission is not call permission. A usable write key must carry a matching
-   `--spend-limit` *and* a matching `--allow-call <contract>:<signature>`. Either
-   alone is insufficient.
-3. **Use `--json` / `--terse` for any agent or CI parsing.** Human-readable output
-   is the default and not stable to parse. `--json` returns structured data;
-   `--terse` is compact tab-delimited.
-4. **Native token sentinel is `0x0000000000000000000000000000000000000000`.** Use
-   it as the `<token>` in `--spend-limit` for native ETH spend caps. For native ETH
-   moves prefer `mega moss transfer` (no `--allow-call` needed); a key only needs a
-   `--allow-call` scope for *contract* calls it should be allowed to make.
-5. **`mega moss update` also updates the bundled agent skill.** The installer ships
-   this skill alongside the CLI; updating the CLI refreshes it. Keep usage here
-   consistent with the installed CLI version (`mega moss update --check`).
+MegaETH Wallet CLI is not a root wallet or passkey manager. It is a local tool
+for creating, managing, and using scoped delegated session keys for a MegaETH
+wallet account.
 
-## Install
+- The wallet account is an EVM address on MegaETH controlled by the user's
+  passkey wallet at `account.megaeth.com`.
+- Commands default to mainnet. Add `--network testnet` when the user explicitly
+  asks for testnet; local profiles are separate per network.
+- `mega moss login` connects this CLI install to that wallet account and
+  stores an account profile locally. It does not create a delegated session key.
+- `mega moss create-key` generates a delegated key locally and asks the
+  passkey wallet to approve a scoped session key for the same wallet account.
+- Session keys can spend only within their approved expiry, token spend limits,
+  fee allowance, and contract call scopes.
+- The CLI signs with the delegated session key and submits writes through the
+  MegaETH/Porto relay. It never has the user's passkey or root/admin key.
+- `mega moss revoke <key>` revokes a delegated key on-chain.
+- `mega moss logout` only deletes this CLI's local profile and delegated
+  private key material.
+
+## Setup
+
+If `mega moss --help` is unavailable, install the wallet CLI with the public
+installer:
 
 ```bash
 curl -fsSL https://account.megaeth.com/install | sh
 ```
 
-Installs the `mega` binary and the bundled agent skill (verifies release
-checksum). Pin a release with `sh -- --version v0.1.0`. Update later with
-`mega moss update` (`--check` checks without installing).
+After install, make sure the install directory printed by the installer is on
+`PATH`, then rerun `mega moss --help`.
 
-## Minimal working flow
+Release installs check for updates automatically.
+
+## Safety Rules
+
+- Never print, log, request, or transmit private keys, bearer tokens, API keys,
+  passkeys, WebAuthn material, or relay secrets.
+- Treat profile files as local secrets. Never inspect profile files directly,
+  including with `cat`, `sed`, `rg`, workspace-wide search, or editor reads,
+  and do not copy profile contents into chat, issue comments, logs, or
+  telemetry. Use `mega moss whoami`, `mega moss list`, `mega moss permissions`,
+  and `mega moss debug` instead.
+- Use `mega moss call` for read-only `eth_call` workflows.
+- Use `mega moss execute` or `mega moss transfer` only when the user asked
+  for a state-changing operation.
+- Prefer `--json` for machine-readable output and `-t` only for compact text.
+  Human mode may include TTY-only color or login stderr helpers.
+
+## Login And Browser Authorization
+
+Run loopback login on the same machine as the browser:
 
 ```bash
-# 1. Connect this machine to your MOSS account (opens account.megaeth.com)
 mega moss login
+```
 
-# 2. Confirm the connected account + active key, machine-readable
+The CLI opens MegaETH Wallet in the system browser, listens on
+`127.0.0.1:<random-port>/callback`, validates `state`, and stores the approved
+account profile locally. The callback must not contain private keys or
+transferable bearer credentials. Login alone is not enough for writes; create a
+scoped delegated key before `execute` or `transfer`.
+
+Prefer the default browser-opened loopback flow when the browser and CLI run on
+the same machine. Use `--no-browser` only as a fallback when the browser does
+not open automatically or when the user needs a URL to copy manually.
+`--no-browser` is not headless auth; it still uses same-machine loopback auth
+and waits for browser approval.
+
+Use `--auth-flow device` only for headless or different-machine approval. The
+CLI prints a URL and verification code, the user approves in MegaETH Wallet,
+and the CLI polls the wallet API with PKCE until approval. `--no-browser` is
+unnecessary with device auth. If the CLI says device-code auth is unavailable,
+use loopback auth or a wallet backend that supports `/v1/cli-auth/device`.
+
+Do not reuse old authorization URLs or edit their query parameters. If an auth
+command times out, is interrupted, or the browser link stops verifying, rerun
+the command and use the new URL it opens or prints.
+
+For both browser-opened and `--no-browser` authorization flows, pass
+`--timeout-ms 300000` when passkey approval may take longer than the default
+120 seconds.
+
+Authorization commands that use `--no-browser` are interactive waiting
+processes. Do not choose them just to monitor auth; use normal browser-opened
+flows first. If `--no-browser` is necessary, make sure your execution tool will
+stream stdout/stderr immediately and keep the session open. Capture the printed
+URL, show it to the user, and continue monitoring until the command completes,
+times out, or the user asks you to stop. If you cannot monitor live output, do
+not start the auth flow; tell the user the exact command to run locally instead.
+
+Use login only to connect a wallet profile when none exists. If the CLI reports
+`Wallet already connected to ...`, do not rerun login. Use
+`mega moss create-key` to add a delegated key to the existing profile, or
+`mega moss logout` only when the user explicitly wants this CLI install to
+forget the local wallet profile.
+
+If `create-key` fails because the authorized wallet account does not match the
+local profile, run `mega moss whoami`, then ask the user to switch the browser
+wallet/profile to that account. `mega moss logout` deletes the local profile
+and delegated private key material; run it only after the user explicitly
+approves reconnecting this CLI to a different wallet.
+
+Login defaults to mainnet, `https://account.megaeth.com`,
+`https://wallet-api.megaeth.com`, and `https://mainnet.megaeth.com/relay`. Use
+`--wallet-url`, `--wallet-api-url`, or `--relay-url` only when deliberately
+targeting non-canonical endpoints. Use `--network testnet` for the wallet
+testnet profile and chain config.
+
+Create-key defaults keep the approval simple: one-week expiry, a `100 USDM`
+workflow spend cap, and explicit `1 USDM` relay-fee metadata.
+The agent must provide call scope with `--allow-call <target:signature>`, copy a
+known-good key with `--from`, or pass a complete `--permissions
+./permissions.json` file. Do not create workflow keys with implicit broad call
+authority. Use the narrowest call and spend scope that covers the requested
+workflow.
+
+Use `mega moss create-key --spend-limit <token_address>:<amount>:<period>
+--allow-call ...` to add explicit spend rows. Token must be a 20-byte address;
+use `0x0000000000000000000000000000000000000000` for native ETH. Amount is the
+human token amount, and period is `minute`, `hour`, `day`, `week`, `month`, or
+`year`. Repeat `--spend-limit` for multiple spend rows. Custom permission files
+must include a non-empty `permissions.calls` array. Never omit
+`permissions.calls`; omitted calls have produced keys that the relay rejects for
+writes. Each call entry must include both `to` and `signature`.
+Read [references/permissions.md](references/permissions.md) before building
+custom `--permissions` files, debugging permission schema errors, or planning
+nontrivial protocol writes.
+Validate permission shape before running auth commands. Do not use
+`mega moss create-key` as a validator for known invalid permission requests.
+For native ETH transfers, use a native ETH spend row and the no-calldata
+selector `0xe0e0e0e0` for the recipient target, for example
+`--allow-call '<recipient_address>:0xe0e0e0e0'`. Never use the reserved wildcard
+address `0x3232323232323232323232323232323232323232` or selector
+`0x32323232`.
+
+Use `--fee-token <symbol>` and optional `--fee-limit <amount>` on `create-key`
+to request explicit delegated-key relay-fee metadata. `--fee-limit` is a human
+amount in the selected fee token, defaulting to `1`. This does not create a
+workflow spend row; add explicit `--spend-limit` rows for workflow token/native
+movement. If either fee option is present and no `--spend-limit` is supplied,
+the CLI requests no workflow spend rows.
+
+Relay fees use delegated-key fee metadata plus relay/account enforcement, while
+workflow token/native movement uses `permissions.spend`. Future `execute` and
+`transfer` calls default to the `authorizedKey.feeToken` returned by wallet
+approval. The Gas Token shown during approval pays the approval transaction
+itself and should not be treated as a mutation to the requested key scope.
+
+## Inspect The Active Wallet
+
+```bash
 mega moss whoami --json
+mega moss list --json
+mega moss permissions 0xKEY_OR_ACCESS_ADDRESS --json
+```
 
-# 3. Create a scoped write key: 25 USDm/week + ONLY the transfer() call.
-#    Build the flag values with the helper scripts (see Scripts), then:
+Use these before writes to verify the account, delegated access address, expiry,
+approved permission limits, and current on-chain spend remaining. If you only
+have a shortened key id from plain text output, run `mega moss list --json`
+and copy the full `accessAddress` into `mega moss permissions`.
+In `permissions --json`, treat `authorizedKey.permissions.spend` as the stored
+request and `spendInfos[].remaining` as the live execution capacity.
+`spendInfos` is Porto/account spend accounting, so it can include relay
+fee-token allowance even when `authorizedKey.permissions.spend` is empty.
+
+## Execute Writes
+
+```bash
+mega moss execute \
+  --to 0x1234567890abcdef1234567890abcdef12345678 \
+  --data 0x \
+  --value 0
+```
+
+For multiple writes, pass `--calls ./calls.json`. Pass
+`--key 0xKEY_OR_ACCESS_ADDRESS` only when the user has approved using a
+non-default stored key. Confirm that the requested operation fits the approved
+delegated-key permissions before executing.
+
+When hand-writing raw calldata, verify the function selector first with an ABI
+encoder or `cast sig`; mismatched selectors cause wrong calls. For
+`--allow-call` and permission-file call scopes, prefer canonical
+human-readable function signatures. Use raw selectors only when necessary; use
+`0xe0e0e0e0` specifically for native ETH no-calldata transfer scopes and never
+use wildcard/sentinel selectors such as `0x32323232`.
+
+> **ERC20 approvals must be bundled.** On the MegaETH relay, a standalone
+> `approve` is reset at end-of-transaction. Always include `approve` and its
+> consuming call in the same `--calls` array.
+
+Spend permission is not call permission. A key with `calls: []` or omitted
+`permissions.calls` cannot execute relay-backed writes, including native ETH
+transfers, even when it has spend allowance. Do not request `calls: []` and do
+not omit `permissions.calls`; use explicit `--allow-call <target:signature>`
+scopes or permission-file call entries with both `to` and `signature`.
+
+For workflows that move ERC20 value through another contract, the key usually
+needs both spend permission for the token and call permission for each contract
+function it invokes, such as ERC20 `approve` plus the downstream protocol call.
+ERC20 spend accounting charges the larger of recognized calldata value
+(`transfer`, `transferFrom`, `approve`, Permit2 approve) and observed wallet
+balance decrease. Size spend caps for the larger amount in an approve plus
+protocol-call batch, not the sum.
+
+### Common Patterns
+
+ERC20 approve plus protocol call, such as Aave supply or a swap:
+
+```json
+[
+  {
+    "to": "<TOKEN>",
+    "data": "0x<approve(spender,amount) calldata>",
+    "value": "0"
+  },
+  {
+    "to": "<PROTOCOL>",
+    "data": "0x<supply/swap/deposit calldata>",
+    "value": "0"
+  }
+]
+```
+
+Use one `mega moss execute --calls ./calls.json` command for the array above.
+Do not split approval and consumption across two `execute` calls.
+
+## Read State
+
+```bash
+mega moss call \
+  --to 0x1234567890abcdef1234567890abcdef12345678 \
+  --data 0x
+```
+
+`call` is read-only and should be the default for inspection.
+If `--from` is omitted, the CLI uses the logged-in wallet account when a local
+profile exists. Pass `--from 0x...` only when a different simulation address is
+needed.
+
+## Manage Delegated Keys
+
+```bash
+mega moss list --json
+mega moss list --show-inactive --json
+mega moss permissions 0xKEY_OR_ACCESS_ADDRESS --json
+mega moss switch 0xKEY_OR_ACCESS_ADDRESS
+mega moss create-key \
+  --allow-call '0xfafddbb3fc7688494971a79cc65dca3ef82079e7:transfer(address,uint256)' \
+  --label "usdm-transfer"
 mega moss create-key \
   --spend-limit 0xfafddbb3fc7688494971a79cc65dca3ef82079e7:25:week \
   --allow-call '0xfafddbb3fc7688494971a79cc65dca3ef82079e7:transfer(address,uint256)' \
-  --label usdm-transfer
-# -> confirm the new key in the browser wallet
-
-# 4. Inspect approved scope + live on-chain remaining for a key
-mega moss permissions 0xKEY_OR_ACCESS_ADDRESS --terse
-
-# 5. Transfer an ERC-20 through the active delegated key
-mega moss transfer \
-  --token 0xfafddbb3fc7688494971a79cc65dca3ef82079e7 \
-  --to 0xRecipient \
-  --amount 1
+  --label "agent"
+mega moss label 0xKEY_OR_ACCESS_ADDRESS "agent"
+mega moss revoke 0xKEY_OR_ACCESS_ADDRESS
+mega moss revoke 0xKEY_OR_ACCESS_ADDRESS --fee-token USDm
 ```
 
-### Reads, single writes, batched writes
+Use `list` to inspect local keys. Revoked and expired keys are hidden unless
+`--show-inactive` is present. Use `permissions` to inspect the exact approved
+scope and remaining on-chain spend before a write. Plain-text output separates
+the stored approved scope from live on-chain spend remaining. When operating on
+testnet, pass `--network testnet` consistently on login, create-key,
+inspection, writes, revoke, fund, and logout commands.
+
+Use `create-key` when no existing key has the requested scope; it opens the
+browser/passkey approval flow and requires explicit call scope unless using
+`--from` or `--permissions`. Add `--auth-flow device` only when the user must
+approve from a separate browser/device. Use `revoke` to revoke a key on-chain;
+the CLI keeps an inactive audit record but removes local private key material.
+Revoke defaults to the key's stored fee token. On revoke, `--fee-token` selects
+the relay payment token for that revoke transaction.
+
+## Update And Uninstall
+
+Release installs check for updates automatically. Use `mega moss update --check`
+only when diagnosing version issues, and `mega moss update` when the user
+explicitly asks to update immediately.
+
+Do not uninstall unless the user explicitly asks. To remove installed CLI files
+only:
 
 ```bash
-# Read-only call — no write key needed (raw or ABI mode)
-mega moss call --to 0xContract --abi ./erc20.json --function balanceOf --args '["0xUser"]'
-
-# Single write through a key whose spend + call scopes both cover it
-mega moss execute --to 0xContract --data 0x --value 0 --key 0xKEY_OR_ACCESS_ADDRESS
-
-# Batched writes from a file (array of calls), through a specific key
-mega moss execute --key 0xKEY_OR_ACCESS_ADDRESS --calls ./calls.json
+~/.mega/wallet-cli/current/scripts/uninstall.sh
 ```
 
-### Native ETH spend limit
+To remove installed CLI files plus local wallet profiles and delegated private
+key material:
 
 ```bash
-# Spend limit uses the native sentinel as <token>.
-# Native moves go through `mega moss transfer` and need no --allow-call;
-# add --allow-call only for contract calls this key should be able to make.
+~/.mega/wallet-cli/current/scripts/uninstall.sh --config
+```
+
+Uninstalling or logging out does not revoke on-chain delegated keys; use
+`mega moss revoke <key>` for on-chain revocation.
+
+## Custom Permission Files
+
+For the full permission schema and examples, read
+[references/permissions.md](references/permissions.md).
+
+## Transfer Funds
+
+Native ETH:
+
+```bash
 mega moss create-key \
-  --spend-limit 0x0000000000000000000000000000000000000000:0.5:day \
-  --label native-eth
+  --spend-limit 0x0000000000000000000000000000000000000000:0.1:week \
+  --allow-call '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd:0xe0e0e0e0'
+mega moss transfer --to 0xabcdefabcdefabcdefabcdefabcdefabcdefabcd --amount 0.1
 ```
 
-## Command map
-
-| Need | Command |
-| --- | --- |
-| Connect / disconnect this machine | `mega moss login` / `mega moss logout` |
-| Show connected account + active key | `mega moss whoami [--json]` |
-| List delegated keys | `mega moss list [--show-inactive] [--json]` |
-| Approved scope + live remaining | `mega moss permissions <addr> [--terse]` |
-| Select active key | `mega moss switch <addr>` |
-| Label a key | `mega moss label <addr> "<name>"` |
-| Mint a scoped delegated key | `mega moss create-key [--spend-limit …] [--allow-call …] [--label …]` |
-| Revoke a key on-chain | `mega moss revoke <addr>` (browser confirm) |
-| Read-only contract call | `mega moss call [--to --abi --function --args]` |
-| Single / batched write | `mega moss execute [--to --data --value --key --calls]` |
-| Transfer native / ERC-20 | `mega moss transfer [--token --to --amount --key]` |
-| Open funding flow | `mega moss fund` |
-| Local profile health | `mega moss debug` |
-| Update CLI + bundled skill | `mega moss update [--check]` |
-
-## Flag formats
-
-- `--spend-limit <token>:<amount>:<period>` — `token` is a contract address or the
-  native sentinel; `period` ∈ `{minute,hour,day,week,month,year}`. Repeatable.
-- `--allow-call <contract>:<signature>` — both required; signature is the canonical
-  `{ to, signature }` call matcher, e.g. `transfer(address,uint256)`. Repeatable.
-
-`--json` exposes `authorizedKey.permissions.spend` (the stored request) and
-`spendInfos[].remaining` (live remaining capacity).
-
-## Scripts
-
-Bundled executable helpers (Node ESM, no deps) that emit valid flag values —
-**RUN** them, don't paste their source:
+ERC20:
 
 ```bash
-# --spend-limit value (native sentinel auto-filled when token omitted / "native")
-node scripts/format-spend-limit.mjs 25 week 0xfafddbb3fc7688494971a79cc65dca3ef82079e7
-node scripts/format-spend-limit.mjs 0.5 day            # native ETH
-
-# --allow-call value (validates address + name(typeList) signature)
-node scripts/format-allow-call.mjs 0xfafddbb3fc7688494971a79cc65dca3ef82079e7 "transfer(address,uint256)"
+mega moss transfer \
+  --token 0x1234567890abcdef1234567890abcdef12345678 \
+  --to 0xabcdefabcdefabcdefabcdefabcdefabcdefabcd \
+  --amount 100
 ```
 
-Both are also importable: `import { formatSpendLimit } from './scripts/format-spend-limit.mjs'`.
+`transfer` is a wrapper over `execute`; it is still a write operation.
+For ERC20s, the CLI reads token decimals from RPC unless `--decimals` is
+provided.
+Pass `--key 0xKEY_OR_ACCESS_ADDRESS` only when the user has approved using a
+specific non-default delegated key.
 
-## References
+## Fund The Wallet
 
-- See [references/cli.md](references/cli.md) for the full command list, flags,
-  install-from-source, and the `--json` / `--terse` output shapes.
-- See [references/smart-approvals.md](references/smart-approvals.md) for the shared
-  policy model — how `--allow-call` maps to `{ to, signature }` and `--spend-limit`
-  to scoped spend caps.
+```bash
+mega moss fund
+mega moss fund --no-open --json
+```
 
-## Related skills
+`fund` opens or prints the wallet deposit URL for the active account. It does
+not transfer funds by itself.
 
-- **moss-wallet-permissions** — the shared Smart Approvals / session-grant policy
-  model behind delegated keys (the SDK side of `create-key`). Start there for
-  designing scope.
-- **moss-wallet-sdk** — the browser/Node `mega` object equivalents
-  (`grantPermissions`, `callContract`, `transfer`).
+## Debug
 
-## Old patterns
+```bash
+mega moss debug --json
+mega moss debug --skip-chain --json
+```
 
-<details><summary>Stale assumptions to avoid</summary>
+Use `debug` to inspect profile path/mode, account, delegated key expiry, native
+balance, and relay key status. Do not print or copy profile files.
 
-- The CLI does **not** hold or export your passkey, seed phrase, or root key — it
-  is delegated session-key material only. Never ask it to "export keys." Use the
-  wording "Recovery Code," never "seed phrase."
-- A `--spend-limit` alone does **not** make a usable write key — you must also pass
-  a matching `--allow-call`. Spend permission ≠ call permission.
-- Do not treat `to`-only call grants as the default — the canonical matcher is
-  `{ to, signature }` (`--allow-call <contract>:<signature>`).
-- Do not parse the default human-readable output in scripts — it is not stable.
-  Use `--json` / `--terse`.
-- Do not hand-build a funding UI — `mega moss fund` opens the account funding flow.
+## Logout
 
-</details>
+```bash
+mega moss logout
+```
+
+Logout deletes the local wallet profile, including locally stored delegated
+private key material and key-selection metadata. It does not revoke delegated
+keys on-chain. Use `mega moss revoke <key>` when the user wants on-chain
+revocation; use `logout` only when the user explicitly wants this CLI install to
+forget the wallet locally.

@@ -1,13 +1,6 @@
 ---
 name: moss-wallet-privy-migration
-description: Builds a guided wizard that moves a user's assets from a Privy embedded wallet into a new MOSS account on MegaETH. Use when migrating users off Privy: create or connect the MOSS account with mega.initialise() + mega.connect() to get the destination address, then transfer assets from the Privy EOA (Privy signs and broadcasts). Encodes the critical ordering — ERC-20s first, NFTs next, native token last minus a gas reserve — plus an asset allowlist, per-transfer state tracking with resumable partial completion, and the hard rule never to export, request, or move private keys or seed phrases. This is an asset migration, not a key migration.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets @megaeth-labs/wallet-sdk v0.1.x + the Privy SDK.
-metadata:
-  package: "@megaeth-labs/wallet-sdk"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
-  native-token-sentinel: "0x0000000000000000000000000000000000000000"
+description: "Builds a guided wizard that moves a user's assets from a Privy embedded wallet into a new MOSS account on MegaETH. Use when migrating users off Privy: create or connect the MOSS account with mega.initialise() + mega.connect() to get the destination address, then transfer assets from the Privy EOA (Privy signs and broadcasts). Encodes the critical ordering — ERC-20s first, NFTs next, native token last minus a gas reserve — plus an asset allowlist, per-transfer state tracking with resumable partial completion, and the hard rule never to export, request, or move private keys or seed phrases. This is an asset migration, not a key migration."
 ---
 
 # Migrate Privy assets into a MOSS account

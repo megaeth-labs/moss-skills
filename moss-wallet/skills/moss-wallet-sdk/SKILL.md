@@ -1,13 +1,6 @@
 ---
 name: moss-wallet-sdk
-description: Builds MOSS embedded-wallet integrations on MegaETH with the @megaeth-labs/wallet-sdk core SDK (the `mega` object). Use when implementing or debugging wallet connect, disconnect, status, transfer, send, swap, callContract, getFromContract, signMessage, signData, balances, or deposit in any JS/TS app (vanilla, Vue, Svelte, Node). Covers mega.initialise() config (network, sponsorUrl), the secure-context/passkey requirement, and the three-way approved/cancelled/error result contract that methods return instead of throwing. Acts as the entry point that routes to the React, permissions, server-verify, paymaster, CLI, Privy-migration, and security-review skills for specialized work.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets @megaeth-labs/wallet-sdk v0.1.x.
-metadata:
-  package: "@megaeth-labs/wallet-sdk"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
-  wallet-host: "https://account.megaeth.com"
+description: "Builds MOSS embedded-wallet integrations on MegaETH with the @megaeth-labs/wallet-sdk core SDK (the `mega` object). Use when implementing or debugging wallet connect, disconnect, status, transfer, send, swap, callContract, getFromContract, signMessage, signData, balances, or deposit in any JS/TS app (vanilla, Vue, Svelte, Node). Covers mega.initialise() config (network, sponsorUrl), the secure-context/passkey requirement, and the three-way approved/cancelled/error result contract that methods return instead of throwing. Acts as the entry point that routes to the React, permissions, server-verify, paymaster, CLI, Privy-migration, and security-review skills for specialized work."
 ---
 
 # MOSS Wallet SDK (core)

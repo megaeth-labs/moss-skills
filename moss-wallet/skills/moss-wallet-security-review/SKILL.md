@@ -1,11 +1,6 @@
 ---
 name: moss-wallet-security-review
-description: Reviews an existing MOSS wallet integration for security and correctness before launch on MegaETH. Use when auditing partner code rather than building it: produces findings grouped as Critical, Risky defaults, and Recommendations with concrete remediations. Checks for frontend-owned trust decisions, missing backend SIWE/JWT verification, over-broad or long-lived permission grants, to-only call matching, unguarded silent: true usage, unrestricted sponsor endpoints (no allowlist/budget/rate limit), unhandled cancelled/error results, insecure-context passkey failures, and persisted session-key material in frontend storage.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Reviews MOSS integrations (any @megaeth-labs/wallet-* package).
-metadata:
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Reviews an existing MOSS wallet integration for security and correctness before launch on MegaETH. Use when auditing partner code rather than building it: produces findings grouped as Critical, Risky defaults, and Recommendations with concrete remediations. Checks for frontend-owned trust decisions, missing backend SIWE/JWT verification, over-broad or long-lived permission grants, to-only call matching, unguarded silent: true usage, unrestricted sponsor endpoints (no allowlist/budget/rate limit), unhandled cancelled/error results, insecure-context passkey failures, and persisted session-key material in frontend storage."
 ---
 
 # MOSS Wallet Security Review

@@ -1,12 +1,6 @@
 ---
 name: moss-wallet-paymaster
-description: Configures MOSS gas sponsorship and the partner paymaster endpoint on MegaETH. Use when sponsoring gas for users: set sponsorUrl, sponsorMode (app-only default, explicit, or everything), and sponsorToken (native or usdm) in mega.initialise() or MegaProvider, and build the backend sponsor endpoint that validates the request, enforces contract allowlists, budget caps, and rate limits, then signs or rejects. Use explicit mode with per-call sponsor: true for onboarding-only sponsorship. Encodes the rule that sponsorship policy stays server-side and everything mode is testing-only.
-license: MIT
-compatibility: Claude Code, Codex, Cursor, Gemini, Copilot. Targets @megaeth-labs/wallet-sdk v0.1.x + a partner backend.
-metadata:
-  package: "@megaeth-labs/wallet-sdk"
-  network-mainnet-chainid: "4326"
-  network-testnet-chainid: "6343"
+description: "Configures MOSS gas sponsorship and the partner paymaster endpoint on MegaETH. Use when sponsoring gas for users: set sponsorUrl, sponsorMode (app-only default, explicit, or everything), and sponsorToken (native or usdm) in mega.initialise() or MegaProvider, and build the backend sponsor endpoint that validates the request, enforces contract allowlists, budget caps, and rate limits, then signs or rejects. Use explicit mode with per-call sponsor: true for onboarding-only sponsorship. Encodes the rule that sponsorship policy stays server-side and everything mode is testing-only."
 ---
 
 # MOSS Wallet Paymaster (Gas Sponsorship)
